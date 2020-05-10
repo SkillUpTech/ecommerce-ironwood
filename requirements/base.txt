@@ -115,5 +115,5 @@ typing==3.6.6             # via django-extensions
 unicodecsv==0.14.1        # via -r base.in, djangorestframework-csv
 unidecode==0.4.21         # via django-oscar
 uritemplate==3.0.0        # via coreapi
-urllib3==1.24.1           # via requests
+urllib3==1.24.2           # via requests
 zeep==2.1.1               # via -r base.in
