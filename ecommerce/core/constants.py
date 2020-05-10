@@ -24,8 +24,6 @@ DONATIONS_FROM_CHECKOUT_TESTS_PRODUCT_TYPE_NAME = 'Donation'
 ENROLLMENT_CODE_PRODUCT_CLASS_NAME = 'Enrollment Code'
 ENROLLMENT_CODE_SWITCH = 'create_enrollment_codes'
 ENROLLMENT_CODE_SEAT_TYPES = ['verified', 'professional', 'no-id-professional']
-# Subscription product constant
-SUBSCRIPTION_PRODUCT_CLASS_NAME = 'Subscription'
 
 # Course Entitlement constant
 COURSE_ENTITLEMENT_PRODUCT_CLASS_NAME = 'Course Entitlement'

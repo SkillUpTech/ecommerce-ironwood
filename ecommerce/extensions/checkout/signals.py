@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 post_checkout = get_class('checkout.signals', 'post_checkout')
 
 # Number of orders currently supported for the email notifications
-ORDER_LINE_COUNT = 2
+ORDER_LINE_COUNT = 1
 
 
 @receiver(post_checkout, dispatch_uid='tracking.post_checkout_callback')
@@ -98,29 +98,38 @@ def send_course_purchase_email(sender, order=None, **kwargs):  # pylint: disable
     """Send course purchase notification email when a course is purchased."""
     if waffle.switch_is_active('ENABLE_NOTIFICATIONS'):
         # We do not currently support email sending for orders with more than one item.
-        if len(order.lines.all()) <= ORDER_LINE_COUNT:
-            products = order.lines.all()
-            product_titles = ""
-            for product in products:
-                product_titles = product_titles + " " + product.product.title
-                pro = product_titles.replace('(and ID verification)','')
+        if len(order.lines.all()) == ORDER_LINE_COUNT:
+            product = order.lines.first().product
+            credit_provider_id = getattr(product.attr, 'credit_provider', None)
+            if not credit_provider_id:
+                logger.error(
+                    'Failed to send credit receipt notification. Credit seat product [%s] has no provider.', product.id
+                )
+                return
+            elif product.is_seat_product:
+                provider_data = get_credit_provider_details(
+                    access_token=order.site.siteconfiguration.access_token,
+                    credit_provider_id=credit_provider_id,
+                    site_configuration=order.site.siteconfiguration
+                )
 
-         
-            receipt_page_url = get_receipt_page_url(
-                order_number=order.number,
-                site_configuration=order.site.siteconfiguration
-            )
+                receipt_page_url = get_receipt_page_url(
+                    order_number=order.number,
+                    site_configuration=order.site.siteconfiguration
+                )
 
-            send_notification(
-                 order.user,
-                 'COURSE_PURCHASED',
-                 {
-                            'course_title': pro,
-                            'order_number': order.number,
+                if provider_data:
+                    send_notification(
+                        order.user,
+                        'CREDIT_RECEIPT',
+                        {
+                            'course_title': product.title,
                             'receipt_page_url': receipt_page_url,
-                 },
+                            'credit_hours': product.attr.credit_hours,
+                            'credit_provider': provider_data['display_name'],
+                        },
                         order.site
-               )
+                    )
 
         else:
-            logger.info('Currently support receipt emails for order with one or two items.')
+            logger.info('Currently support receipt emails for order with one item.')

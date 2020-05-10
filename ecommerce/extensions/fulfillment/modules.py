@@ -20,7 +20,7 @@ from ecommerce.core.constants import (
     DONATIONS_FROM_CHECKOUT_TESTS_PRODUCT_TYPE_NAME,
     ENROLLMENT_CODE_PRODUCT_CLASS_NAME
 )
-from ecommerce.core.url_utils import get_lms_enrollment_api_url, get_lms_entitlement_api_url, get_verify_student_results_callback_url, get_subscription_package_url
+from ecommerce.core.url_utils import get_lms_enrollment_api_url, get_lms_entitlement_api_url
 from ecommerce.courses.models import Course
 from ecommerce.courses.utils import mode_for_product
 from ecommerce.enterprise.utils import get_or_create_enterprise_customer_user
@@ -223,24 +223,6 @@ class EnrollmentFulfillmentModule(BaseFulfillmentModule):
                 order.user.username
             )
 
-    def _post_to_verify_student_results_callback_url(self, data, user):
-        verify_student_results_callback_url = get_verify_student_results_callback_url()
-        timeout = settings.ENROLLMENT_FULFILLMENT_TIMEOUT
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Edx-Api-Key': settings.EDX_API_KEY
-        }
-
-        __, client_id, ip = parse_tracking_context(user)
-
-        if client_id:
-            headers['X-Edx-Ga-Client-Id'] = client_id
-
-        if ip:
-            headers['X-Forwarded-For'] = ip
-
-        return requests.post(verify_student_results_callback_url, data=json.dumps(data), headers=headers, timeout=timeout)
-
     def supports_line(self, line):
         return line.product.is_seat_product
 
@@ -360,11 +342,6 @@ class EnrollmentFulfillmentModule(BaseFulfillmentModule):
                     )
                     order.notes.create(message=reason, note_type='Error')
                     line.set_status(LINE.FULFILLMENT_SERVER_ERROR)
-                
-                verify_user_data = {'user': order.user.username}
-                res = self._post_to_verify_student_results_callback_url(verify_user_data, user=order.user)
-                if not res.status_code == status.HTTP_200_OK:
-                    logger.error("Unable to post verify student data")
             except ConnectionError:
                 logger.error(
                     "Unable to fulfill line [%d] of order [%s] due to a network problem", line.id, order.number
@@ -610,80 +587,6 @@ class EnrollmentCodeFulfillmentModule(BaseFulfillmentModule):
             },
             site=order.site
         )
-
-class SubscriptionFulfillmentModule(BaseFulfillmentModule):
-    def _post_to_subscription_package_url(self, data, user):
-        subscription_package_url = get_subscription_package_url()
-        timeout = settings.ENROLLMENT_FULFILLMENT_TIMEOUT
-        headers = {
-            'Content-Type': 'application/json',
-            'X-Edx-Api-Key': settings.EDX_API_KEY
-        }
-
-        __, client_id, ip = parse_tracking_context(user)
-
-        if client_id:
-            headers['X-Edx-Ga-Client-Id'] = client_id
-
-        if ip:
-            headers['X-Forwarded-For'] = ip
-
-        return requests.post(subscription_package_url, data=json.dumps(data), headers=headers, timeout=timeout)    
-
-    def supports_line(self, line):
-        """
-        Check whether the product in line is an Subscription.
-        Args:
-            line (Line): Line to be considered.
-        Returns:
-            True if the line contains an Subscription.
-            False otherwise.
-        """
-        return line.product.is_subscription_product
-
-    def get_supported_lines(self, lines):
-        """ Return a list of lines containing Subscription products that can be fulfilled.
-        Args:
-            lines (List of Lines): Order Lines, associated with purchased products in an Order.
-        Returns:
-            A supported list of unmodified lines associated with an Subscription product.
-        """
-        return [line for line in lines if self.supports_line(line)]
-
-    def fulfill_product(self, order, lines, email_opt_in=False):
-        """ Fulfills the purchase of an 'subscription' products.
-        Args:
-            order (Order): The Order associated with the lines to be fulfilled.
-            lines (List of Lines): Order Lines, associated with purchased products in an Order. These should only
-                be 'Coupon' products.
-        Returns:
-            The original set of lines, with new statuses set based on the success or failure of fulfillment.
-        """
-        logger.info("Attempting to fulfill 'Subscription' product types for order [%s]", order.number)
-        course_key = ""
-        try:
-            course_key = order.lines.first().product.attr.course_key
-        except:
-            course_key = order.lines.last().product.attr.course_key
-
-        for line in lines:
-            subscription_package_data = {'user': order.user.username, 'course_id': course_key, 'sku': line.stockrecord.partner_sku}
-            subs_res = self._post_to_subscription_package_url(subscription_package_data, user=order.user)
-            if not subs_res.status_code == status.HTTP_200_OK:
-                logger.error("Unable to post subscription package data")
-            line.set_status(LINE.COMPLETE)
-
-        logger.info("Finished fulfilling 'Subscription' product types for order [%s]", order.number)
-        return order, lines
-
-    def revoke_line(self, line):
-        """ Revokes the specified line.
-        Args:
-            line (Line): Order Line to be revoked.
-        Returns:
-            True, if the product is revoked; otherwise, False.
-        """
-        raise NotImplementedError("Revoke method not implemented!")
 
 
 class CourseEntitlementFulfillmentModule(BaseFulfillmentModule):

@@ -109,4 +109,4 @@ class LogoutView(EdxOpenIdConnectLogoutView):
     """ Logout view that redirects the user to the LMS logout page. """
 
     def get_redirect_url(self, *args, **kwargs):
-        return self.request.site.siteconfiguration.build_lms_url('logout_all')
+        return self.request.site.siteconfiguration.build_lms_url('logout')

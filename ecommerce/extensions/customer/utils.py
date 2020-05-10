@@ -59,7 +59,6 @@ class Dispatcher(Dispatcher):
         Plain email sending to the specified recipient
         """
         from_email = settings.OSCAR_FROM_EMAIL
-        bcc_emails = [settings.OSCAR_FROM_EMAIL]
         if site:
             from_email = site.siteconfiguration.get_from_email()
 
@@ -68,17 +67,13 @@ class Dispatcher(Dispatcher):
             email = EmailMultiAlternatives(messages['subject'],
                                            messages['body'],
                                            from_email=from_email,
-                                           to=[recipient],
-                                           bcc=bcc_emails
-                                          )
+                                           to=[recipient])
             email.attach_alternative(messages['html'], "text/html")
         else:
             email = EmailMessage(messages['subject'],  # pylint: disable=redefined-variable-type
                                  messages['body'],
                                  from_email=from_email,
-                                 to=[recipient],
-                                 bcc=bcc_emails
-                                )
+                                 to=[recipient])
         self.logger.info("Sending email to %s" % recipient)
         email.send()
 

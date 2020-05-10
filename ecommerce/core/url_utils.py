@@ -79,11 +79,6 @@ def get_lms_enrollment_api_url():
     # get_lms_enrollment_api_url).
     return get_lms_url('/api/enrollment/v1/enrollment')
 
-def get_verify_student_results_callback_url():
-    return get_lms_url('/verify_student/results_callback')
-
-def get_subscription_package_url():
-    return get_lms_url('/subscriptions/add_subscription_to_student')
 
 def get_lms_entitlement_api_url():
     """ Returns the base lms entitlement api url. """
