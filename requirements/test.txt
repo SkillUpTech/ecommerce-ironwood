@@ -140,7 +140,7 @@ unicodecsv==0.14.1        # via -r base.in, djangorestframework-csv
 unidecode==0.4.21         # via django-oscar
 uritemplate==3.0.0        # via coreapi
 urllib3==1.24.1           # via requests
-waitress==1.2.1           # via webtest
+waitress==1.4.3           # via webtest
 webob==1.8.5              # via webtest
 webtest==2.0.33           # via django-webtest
 wrapt==1.11.1             # via astroid
